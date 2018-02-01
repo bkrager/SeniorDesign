@@ -20,12 +20,41 @@ void initTimer3() {
 
 }
 
+void initTimer4() {
+
+  //Phase and Freq correct PWM (WGM = 8)
+  TCCR4B |= (1 << WGM43);
+
+  //no prescalar
+  TCCR4B |= (1 << CS40);
+
+  //Set TOP value to 255 (for 62.5 kHz switching frequency)
+  ICR4 = 255;
+
+
+
+}
+
+void initTimer5() {
+
+  //Phase and Freq correct PWM (WGM = 8)
+  TCCR5B |= (1 << WGM53);
+
+  //no prescalar
+  TCCR5B |= (1 << CS50);
+
+  //Set TOP value to 255 (for 62.5 kHz switching frequency)
+  ICR5 = 255;
+
+}
 
 void initTimers() {
 
   initTimer0();
   initTimer1();
   initTimer3();
+  initTimer4();
+  initTimer5();
   return;
 
 }
@@ -82,6 +111,24 @@ void turnOffTimer3() {
   TIMSK3 &= ~(1 << OCIE3A);
 
 }
+
+void turnOnTimer4() {
+  //enable interrupts for A, B, and C output compares
+  TIMSK4 |= (1 << OCIE4A) | (1 << OCIE4B) | (1 << OCIE4C);
+}
+void turnOffTimer4() {
+  //disable interrupts for A, B, and C output compares
+  TIMSK4 &= ~((1 << OCIE4A) | (1 << OCIE4B) | (1 << OCIE4C));
+}
+void turnOnTimer5() {
+  //enable interrupts for A, B, and C output compares
+  TIMSK5 |= (1 << OCIE5A) | (1 << OCIE5B) | (1 << OCIE5C);
+}
+void turnOffTimer5() {
+  //disable interrupts for A, B, and C output compares
+  TIMSK5 &= ~((1 << OCIE5A) | (1 << OCIE5B) | (1 << OCIE5C));
+}
+
 
 
 void initTimer0() {

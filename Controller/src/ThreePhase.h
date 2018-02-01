@@ -36,6 +36,12 @@ private:
   int portNum;
   int moving;
 
+  int sinA[128];
+  int sinB[128];
+  int sinC[128];
+
+
+
 
 
 

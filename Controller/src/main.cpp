@@ -10,6 +10,8 @@
 #include <avr/io.h>
 #include <SD.h>
 
+
+
 XYtable toolpath;
 button upButton(10);
 button downButton(11);
@@ -31,7 +33,7 @@ void wait();
 
 int main() {
 
-  Serial.begin(9600);
+
 
   sei();
   initTimers();
@@ -128,6 +130,8 @@ int Gcode() {
           case 1: //program stop
             turnOffTimer1();
             turnOffTimer3();
+            turnOffTimer4();
+            turnOffTimer5();
             toolpath.controlValve(0);
             systemMenu.setInOptionStop(1);
             systemMenu.setStatusLine(warning);
@@ -175,7 +179,10 @@ ISR(TIMER1_COMPA_vect) {
   }
   else {
     turnOffTimer1();
+    turnOffTimer4();
     toolpath.setXmoving(0);
+    //set all outputs to active 0 - axis will be stiff, but driver won't burn up
+    PORTA = 0b00010101;
   }
 
   return;
@@ -192,7 +199,10 @@ ISR(TIMER3_COMPA_vect) {
   }
   else {
     turnOffTimer3();
+    turnOffTimer5();
     toolpath.setYmoving(0);
+    //set all outputs to active 0 - axis will be stiff, but driver won't burn up
+    PORTC = 0b00010101;
   }
 
   return;
@@ -242,6 +252,8 @@ ISR(PCINT2_vect) {
   if (limitXF.isPressed(port)) {
     turnOffTimer1();
     turnOffTimer3();
+    turnOffTimer4();
+    turnOffTimer5();
     toolpath.controlValve(0);
     toolpath.disableMotors();
     toolpath.setXmoving(0);
@@ -256,6 +268,8 @@ ISR(PCINT2_vect) {
   if (limitYF.isPressed(port) && !prevState) {
     turnOffTimer1();
     turnOffTimer3();
+    turnOffTimer4();
+    turnOffTimer5();
     toolpath.controlValve(0);
     toolpath.disableMotors();
     toolpath.setXmoving(0);
@@ -268,4 +282,84 @@ ISR(PCINT2_vect) {
 
   return;
 
+}
+
+
+//Internal PWM Generation
+ISR(TIMER4_COMPA_vect) {
+    if (OCR4A > TCNT4) {
+      PORTA &= ~(1 << 4);    //turn off Ab
+      PORTA |= (1 << 5);     //turn on At
+    } else {
+      PORTA &= ~(1 << 5);    //turn off At
+      PORTA |= (1 << 4);     //turn on Ab
+    }
+
+    // PORTA ^= (1 << 4);
+    // PORTA ^= (1 << 5);
+}
+
+ISR(TIMER4_COMPB_vect) {
+    if (OCR4B > TCNT4) {
+      PORTA &= ~(1 << 2);    //turn off Bb
+      PORTA |= (1 << 3);     //turn on Bt
+    } else {
+      PORTA &= ~(1 << 3);    //turn off Bt
+      PORTA |= (1 << 2);     //turn on Bb
+    }
+
+    // PORTA ^= (1 << 2);
+    // PORTA ^= (1 << 3);
+}
+
+ISR(TIMER4_COMPC_vect) {
+    if (OCR4C > TCNT4) {
+      PORTA &= ~(1 << 0);    //turn off Cb
+      PORTA |= (1 << 1);     //turn on Ct
+    } else {
+      PORTA &= ~(1 << 1);    //turn off Ct
+      PORTA |= (1 << 0);     //turn on Cb
+    }
+
+    // PORTA ^= (1 << 0);
+    // PORTA ^= (1 << 1);
+}
+
+ISR(TIMER5_COMPA_vect) {
+    if (OCR5A > TCNT5) {
+      PORTC &= ~(1 << 4);    //turn off Ab
+      PORTC |= (1 << 5);     //turn on At
+    } else {
+      PORTC &= ~(1 << 5);    //turn off At
+      PORTC |= (1 << 4);     //turn on Ab
+    }
+
+    // PORTC ^= (1 << 4);
+    // PORTC ^= (1 << 5);
+}
+
+ISR(TIMER5_COMPB_vect) {
+    if (OCR5B > TCNT5) {
+      PORTC &= ~(1 << 2);    //turn off Bb
+      PORTC |= (1 << 3);     //turn on Bt
+    } else {
+      PORTC &= ~(1 << 3);    //turn off Bt
+      PORTC |= (1 << 2);     //turn on Bb
+    }
+
+    // PORTC ^= (1 << 2);
+    // PORTC ^= (1 << 3);
+}
+
+ISR(TIMER5_COMPC_vect) {
+    if (OCR5C > TCNT5) {
+      PORTC &= ~(1 << 0);    //turn off Cb
+      PORTC |= (1 << 1);     //turn on Ct
+    } else {
+      PORTC &= ~(1 << 1);    //turn off Ct
+      PORTC |= (1 << 0);     //turn on Cb
+    }
+
+    // PORTC ^= (1 << 0);
+    // PORTC ^= (1 << 1);
 }

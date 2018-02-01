@@ -4,8 +4,8 @@
 #include <Arduino.h>
 #include <stdlib.h>
 
-#define RAPIDSPEED 200      //steps per second
-#define STEPSPERINCH 50
+#define RAPIDSPEED 4000      //steps per second
+#define STEPSPERINCH 989.9
 
 int XYtable::getRelProg() { return relativeProgramming; }
 
@@ -42,6 +42,7 @@ int XYtable::execGLine(char* line) {
     if (command[0] == 'X') { X = strtod(strchr(command, command[1]), NULL); Xexplicit = 1; }
     if (command[0] == 'Y') { Y = strtod(strchr(command, command[1]), NULL); Yexplicit = 1; }
     if (command[0] == 'M') { M[j] = strtol(strchr(command, command[1]), NULL, 10); j++; }
+    if (command[0] == 'F') { F = strtod(strchr(command, command[1]), NULL); }
     if (command[0] == 'P') { P = strtol(strchr(command, command[1]), NULL, 10); }
 
     command = strtok(NULL, " ");
@@ -49,19 +50,23 @@ int XYtable::execGLine(char* line) {
 
   //if X or Y parameters are ommitted, then these axes should not move ELSE convert to inch/mm
   if (!Xexplicit && !relativeProgramming) {
-    Xint = Xmotor->getPosition();
-  } else if (inchmm) {
-    Xint = round(X * STEPSPERINCH);
+    Xint = Xmotor->getPosition() - Xoffset(WCS);
   } else {
-    Xint = round(X * STEPSPERINCH / 25.4);
+    if (inchmm) {
+      Xint = round(X * STEPSPERINCH);
+    } else {
+      Xint = round(X * STEPSPERINCH / 25.4);
+    }
   }
 
   if (!Yexplicit && !relativeProgramming) {
-    Yint = Ymotor->getPosition();
-  } else if (inchmm) {
-    Yint = round(Y * STEPSPERINCH);
+    Yint = Ymotor->getPosition() - Yoffset(WCS);
   } else {
-    Yint = round(Y * STEPSPERINCH / 25.4);
+    if (inchmm) {
+      Yint = round(Y * STEPSPERINCH);
+    } else {
+      Yint = round(Y * STEPSPERINCH / 25.4);
+    }
   }
 
   int imax = i;
@@ -69,9 +74,9 @@ int XYtable::execGLine(char* line) {
 
   for (i = 0; i < imax; i++) {
 
-    //if in skipping, ignore all commands except stop, option stop, or rapid
+    //if in skipping, ignore all commands except stop, option stop, home, or rapid
     if (skipping) {
-      if(G[i] == 0) {
+      if((G[i] == 0) || (G[i] == 28) || (G[i] == 30)) {
         skipping = 0;
       } else {
         G[i] = -1;
@@ -113,7 +118,8 @@ int XYtable::execGLine(char* line) {
       }
       // G30 return to reference point
       else if (G[i] == 30) {
-        linearMoveAbs(Xoffset(P), Yoffset(P));
+        WCS = P;
+        rapidMoveAbs(Xoffset(P), Yoffset(P));
       }
       // G31 skip function ommitted - no probes or measurements
       // G32 - G34 ommitted - no threading
@@ -202,7 +208,7 @@ int XYtable::execGLine(char* line) {
       // M02 end of Program
       else if (M[j] == 2) {
         controlValve(0);
-        disableMotors();
+        //disableMotors();
         return 2;
       }
       // M03 spindle on clockwise
@@ -232,7 +238,7 @@ int XYtable::execGLine(char* line) {
       // M30 end of program (same as M02)
       else if (M[j] == 30) {
         controlValve(0);
-        disableMotors();
+        //disableMotors();
         return 2;
       }
       // M41 - M60 ommitted - no gear select, feed rate overrides, or tool/pallet changes

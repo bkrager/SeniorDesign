@@ -11,6 +11,8 @@ void initTimer0();
 void delayMs(int ms);
 void initTimer1();
 void initTimer3();
+void initTimer4();
+void initTimer4();
 void initTimers();
 
 void changePeriod1(int multiplesOf64us);
@@ -20,5 +22,10 @@ void turnOnTimer1();
 void turnOffTimer1();
 void turnOnTimer3();
 void turnOffTimer3();
+
+void turnOnTimer4();
+void turnOffTimer4();
+void turnOnTimer5();
+void turnOffTimer5();
 
 #endif

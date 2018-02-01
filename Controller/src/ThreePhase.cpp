@@ -7,11 +7,18 @@ ThreePhase::ThreePhase(int portNumber) {
 
   position = 0;
   target = 0;
-  currentStep = 0;    //0 to 5 inclusive
+  currentStep = 0;    //0 to 127 inclusive
   direction = 0;
   moving = 0;
   setPort(portNumber);
   setSpeed(100);
+
+  for (int i = 0; i < 128; ++i) {
+    sinA[i] = round(128.0 + 120.0 * sin(2*M_PI*(i/128.0 - 0.0/3.0)));
+    sinB[i] = round(128.0 + 120.0 * sin(2*M_PI*(i/128.0 - 1.0/3.0)));
+    sinC[i] = round(128.0 + 120.0 * sin(2*M_PI*(i/128.0 - 2.0/3.0)));
+  }
+
 
 }
 
@@ -64,10 +71,11 @@ void ThreePhase::MoveAbs(int positionAbs) {
   if (!direction) { moving = 0; return; }
 
   moving = 1;
+  //disable();
 
   //initialize the timers and let the ISRs do everything else
-  if (portNum == 1) { turnOnTimer1(); }
-  else if (portNum == 3) { turnOnTimer3(); }
+  if (portNum == 1) { turnOnTimer1(); turnOnTimer4(); }
+  else if (portNum == 3) { turnOnTimer3(); turnOnTimer5(); }
 
   return;
 
@@ -80,49 +88,26 @@ void ThreePhase::step() {
   //determine direction of rotation
   if (direction > 0) {
     //clockwise
-    currentStep++; if (currentStep > 5) { currentStep = 0; }
+    currentStep++; if (currentStep > 127) { currentStep = 0; }
     position++;
   }
   else if (direction < 0) {
     //counter-clockwise
-    currentStep--; if (currentStep < 0) { currentStep = 5; }
+    currentStep--; if (currentStep < 0) { currentStep = 127; }
     position--;
   }
   else {
     return;
   }
 
-  switch (currentStep) {
-
-    case 0: //ABC = 110
-      *port &= ~(0b00010110);    //turn off Ab
-      *port |= (0b00101001);     //turn on At
-      break;
-
-    case 1: //ABC = 100
-      *port &= ~(0b00011010);    //turn off Bt
-      *port |= (0b00100101);     //turn on Bb
-      break;
-
-    case 2: //ABC = 101
-      *port &= ~(0b00011001);    //turn off Cb
-      *port |= (0b00100110);     //turn on Ct
-      break;
-
-    case 3: //ABC = 001
-      *port &= ~(0b00101001);    //turn off At
-      *port |= (0b00010110);     //turn on Ab
-      break;
-
-    case 4: //ABC = 011
-      *port &= ~(0b00100101);    //turn off Bb
-      *port |= (0b00011010);     //turn on Bt
-      break;
-
-    case 5: //ABC = 010
-      *port &= ~(0b00100110);    //turn off Ct
-      *port |= (0b00011001);     //turn on Cb
-      break;
+  if (portNum == 1) {
+    OCR4A = sinA[currentStep];
+    OCR4B = sinB[currentStep];
+    OCR4C = sinC[currentStep];
+  } else if (portNum == 3) {
+    OCR5A = sinA[currentStep];
+    OCR5B = sinB[currentStep];
+    OCR5C = sinC[currentStep];
   }
 
   return;
